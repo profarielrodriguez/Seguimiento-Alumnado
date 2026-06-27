@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Seguimiento Académico</title>
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface-2: #f9f8f5;
+    --border: #e2e0d8;
+    --border-strong: #c8c5bb;
+    --text: #1a1917;
+    --text-muted: #6b6860;
+    --accent: #2563eb;
+    --accent-bg: #eff6ff;
+    --accent-border: #bfdbfe;
+    --success: #15803d;
+    --success-bg: #f0fdf4;
+    --success-border: #bbf7d0;
+    --danger: #b91c1c;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+    --warning: #92400e;
+    --warning-bg: #fffbeb;
+    --warning-border: #fde68a;
+    --radius: 8px;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo svg { fill: white; width: 20px; height: 20px; }
+  header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  header p { font-size: 13px; color: var(--text-muted); }
+  .btn-refresh {
+    padding: 7px 14px;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex; align-items: center; gap: 6px;
+    transition: all .15s;
+  }
+  .btn-refresh:hover { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-border); }
+  .btn-refresh.spin svg { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+
+  /* Loading */
+  .loading-screen {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 5rem 2rem; gap: 1rem;
+  }
+  .loading-spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  .loading-text { color: var(--text-muted); font-size: 14px; }
+  .loading-progress { font-size: 13px; color: var(--accent); font-weight: 500; }
+
+  .error-screen {
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    color: var(--danger);
+    margin: 2rem 0;
+  }
+  .error-screen h3 { margin-bottom: 8px; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+  }
+  .stat-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-value { font-size: 24px; font-weight: 600; }
+  .stat-value.blue { color: var(--accent); }
+  .stat-value.green { color: var(--success); }
+  .stat-value.red { color: var(--danger); }
+  .stat-value.orange { color: #b45309; }
+
+  .search-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+  .field label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; }
+  .field select, .field input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    font-size: 14px;
+    background: var(--surface-2);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field select:focus, .field input:focus { border-color: var(--accent); }
+  .btn-search {
+    padding: 8px 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-search:hover { background: #1d4ed8; }
+  .btn-clear {
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+  .tab {
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-weight: 500;
+    transition: all .15s;
+    margin-bottom: -1px;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .alumno-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: box-shadow .15s;
+  }
+  .alumno-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+  .alumno-card.aprobado { border-left: 4px solid var(--success); }
+  .alumno-card.debe { border-left: 4px solid var(--danger); }
+  .alumno-card.incompleto { border-left: 4px solid #d97706; }
+
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .alumno-nombre { font-weight: 600; font-size: 15px; }
+  .alumno-curso { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .badge {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge.aprobado { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+  .badge.debe { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+  .badge.incompleto { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+
+  .materias-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .materia-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--surface-2);
+  }
+  .materia-row.aprobada { background: var(--success-bg); }
+  .materia-row.desaprobada { background: var(--danger-bg); }
+  .materia-row.vacia { background: var(--warning-bg); }
+  .materia-nombre { color: var(--text-muted); font-size: 12px; }
+  .materia-estado { font-size: 11px; font-weight: 600; }
+  .materia-estado.ok { color: var(--success); }
+  .materia-estado.mal { color: var(--danger); }
+  .materia-estado.sin { color: #b45309; }
+
+  .pct-badge {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 10px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .btn-comunicado {
+    width: 100%;
+    padding: 7px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background .15s;
+  }
+  .btn-comunicado:hover { background: #dbeafe; }
+
+  .alert-box {
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: 13px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .alert-box.warning { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning); }
+  .alert-box.info { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #1e40af; }
+
+  .curso-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .curso-header {
+    padding: 1rem 1.25rem;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  .curso-header:hover { background: var(--accent-bg); }
+  .curso-nombre { font-weight: 600; font-size: 15px; }
+  .curso-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .curso-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .curso-body { padding: 1rem 1.25rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--surface-2); padding: 8px 10px; text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface-2); }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+  .empty-state h3 { font-size: 16px; margin-bottom: 6px; color: var(--text); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 2rem;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 1rem; right: 1rem;
+    background: none; border: none; font-size: 20px;
+    cursor: pointer; color: var(--text-muted); line-height: 1;
+  }
+  .modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .modal .subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 1.5rem; }
+  .comunicado-texto {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    font-size: 14px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    margin-bottom: 1rem;
+    font-family: Georgia, serif;
+  }
+  .modal-actions { display: flex; gap: 8px; }
+  .btn-copy {
+    flex: 1; padding: 9px;
+    background: var(--accent); color: white;
+    border: none; border-radius: var(--radius);
+    font-size: 14px; cursor: pointer; font-weight: 500;
+  }
+  .btn-print {
+    flex: 1; padding: 9px;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    font-size: 14px; cursor: pointer; color: var(--text);
+  }
+
+  .last-update { font-size: 12px; color: var(--text-muted); }
+
+  #app-content { display: none; }
+
+  @media (max-width: 640px) {
+    .search-bar { grid-template-columns: 1fr; }
+    main { padding: 1rem; }
+    .results-grid { grid-template-columns: 1fr; }
+    header { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div>
+      <h1>Sistema de Seguimiento Académico</h1>
+      <p id="last-update" class="last-update">Cargando planillas...</p>
+    </div>
+  </div>
+  <button class="btn-refresh" id="btnRefresh" onclick="cargarTodo()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    Actualizar
+  </button>
+</header>
+
+<main>
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Conectando con Google Sheets...</div>
+    <div class="loading-progress" id="loading-progress"></div>
+  </div>
+
+  <div id="error-screen" class="error-screen" style="display:none;">
+    <h3>⚠️ Error al cargar las planillas</h3>
+    <p id="error-msg"></p>
+    <button onclick="cargarTodo()" style="margin-top:1rem;padding:8px 20px;background:var(--danger);color:white;border:none;border-radius:var(--radius);cursor:pointer;">Reintentar</button>
+  </div>
+
+  <div id="app-content">
+    <div id="incompletos-alert" class="alert-box warning" style="display:none;">
+      <span>⚠️</span>
+      <span id="incompletos-msg"></span>
+    </div>
+
+    <div class="stats-row" id="stats-row"></div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('alumnos', this)">Por alumno</div>
+      <div class="tab" onclick="switchTab('cursos', this)">Por curso</div>
+      <div class="tab" onclick="switchTab('materias', this)">Por materia</div>
+      <div class="tab" onclick="switchTab('incompletos', this)">Celdas sin completar</div>
+    </div>
+
+    <div class="search-bar" id="search-bar">
+      <div class="field">
+        <label>Alumno</label>
+        <input type="text" id="buscar-alumno" placeholder="Escribí un nombre..." oninput="filtrar()">
+      </div>
+      <div class="field">
+        <label>Curso</label>
+        <select id="buscar-curso" onchange="filtrar()">
+          <option value="">Todos los cursos</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Materia</label>
+        <select id="buscar-materia" onchange="filtrar()">
+          <option value="">Todas las materias</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn-search" onclick="filtrar()">Buscar</button>
+        <button class="btn-clear" onclick="limpiarFiltros()">Limpiar</button>
+      </div>
+    </div>
+
+    <div id="tab-alumnos">
+      <div class="results-grid" id="grid-alumnos"></div>
+      <div class="empty-state" id="empty-alumnos" style="display:none;">
+        <div class="icon">🔍</div>
+        <h3>Sin resultados</h3>
+        <p>Probá ajustando los filtros de búsqueda.</p>
+      </div>
+    </div>
+
+    <div id="tab-cursos" style="display:none;">
+      <div id="cursos-section"></div>
+    </div>
+
+    <div id="tab-materias" style="display:none;">
+      <div class="curso-block">
+        <div class="curso-body">
+          <table>
+            <thead>
+              <tr>
+                <th>Materia</th>
+                <th>Total</th>
+                <th>Aprobados</th>
+                <th>Desaprobados</th>
+                <th>Sin dato</th>
+                <th>% aprobación</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-materias"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-incompletos" style="display:none;">
+      <div id="incompletos-body"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal comunicado -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="cerrarModal()">✕</button>
+    <h2>Comunicado para familia</h2>
+    <p class="subtitle">Podés copiar este texto y enviarlo por cualquier medio.</p>
+    <div class="comunicado-texto" id="textoComunicado"></div>
+    <div class="modal-actions">
+      <button class="btn-copy" onclick="copiarTexto()">📋 Copiar texto</button>
+      <button class="btn-print" onclick="imprimirComunicado()">🖨️ Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PLANILLAS = [
+  { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQueHtkAGTIbVPoc3pu9jKJPmz6nvbuwFH_lAhQ9-N2b-mGNzkx4TZIH5hQZCzKzZwrCuTnRWJVFQMO/pub?output=csv' },
+  { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSGTePAv90C5JBpK9XJJZHFL8AY2kL6BKUEFmGHzhX48qGKRrA-yBy3ANPF_eor7yVWWQ1--YDhkN38/pub?output=csv' },
+  { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJOUuanmwM5rHHKFs4AxtA7rYkTlSgmtN27tZxYR-QiqfJR2tSkblTvjM4_oDlInxjxAfhqw-azjiI/pub?output=csv' },
+  { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQY-38LUA2pPiiQ06kFdL9MED6WXzSUVjHL-8oIH3x36EIJeKPWIN9WHCeSxWpgstYH0PGPREfHl5WZ/pub?output=csv' }
+];
+
+const APROBADO_VALS = ['aprobado','a','si','sí','s','1','true','aprobó','aprobo'];
+const DESAPROBADO_VALS = ['desaprobado','d','no','n','0','false','desaprobó','desaprobo','reprobado'];
+
+let datos = {};
+let todasLasMaterias = [];
+let todosCursos = [];
+let tabActual = 'alumnos';
+
+function normalizar(val) {
+  if (val === null || val === undefined || String(val).trim() === '') return 'vacio';
+  const v = String(val).trim().toLowerCase();
+  if (APROBADO_VALS.includes(v)) return 'aprobado';
+  if (DESAPROBADO_VALS.includes(v)) return 'desaprobado';
+  return 'vacio';
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  return lines.map(line => {
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; continue; }
+      if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
+      cur += c;
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+async function fetchCSV(url) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('No se pudo cargar la planilla');
+  return await resp.text();
+}
+
+async function cargarTodo() {
+  datos = {}; todasLasMaterias = []; todosCursos = [];
+  const materiasSet = new Set();
+
+  document.getElementById('loading-screen').style.display = 'flex';
+  document.getElementById('error-screen').style.display = 'none';
+  document.getElementById('app-content').style.display = 'none';
+
+  const btn = document.getElementById('btnRefresh');
+  btn.classList.add('spin');
+
+  let errores = 0;
+
+  for (let i = 0; i < PLANILLAS.length; i++) {
+    document.getElementById('loading-progress').textContent = `Cargando planilla ${i + 1} de ${PLANILLAS.length}...`;
+    try {
+      const text = await fetchCSV(PLANILLAS[i].url);
+      const rows = parseCSV(text);
+      if (rows.length < 2) continue;
+
+      const headers = rows[0].map(h => String(h).trim());
+
+      // Col 0 = N° orden, Col 1 = Alumno (nombre), última = Porcentaje
+      // El nombre del curso se detecta desde la primera celda no vacía de encabezado
+      // que no sea "Alumno" ni "Porcentaje" — o bien desde una celda especial
+      // Buscamos el nombre del curso: puede estar en una fila previa o se usa headers[1]
+      const colNombre = 1;
+      const lastCol = headers.length - 1;
+      const materiaHeaders = headers.slice(2, lastCol).filter(h => h !== '');
+      materiaHeaders.forEach(m => materiasSet.add(m));
+
+      // Nombre del curso: buscamos celda que diga algo distinto a encabezados típicos
+      // Si hay una fila 0 con un nombre de curso en col 0, la usamos
+      // Sino derivamos el nombre del valor más común en una columna especial
+      // Por ahora: buscamos si hay alguna celda en la fila de encabezado col 0
+      let nombreCurso = String(headers[0]).trim();
+      if (!nombreCurso || nombreCurso.toLowerCase() === 'n°' || nombreCurso === '' || nombreCurso.match(/^\d+$/)) {
+        nombreCurso = `Planilla ${i + 1}`;
+      }
+
+      const alumnos = [];
+      for (let r = 1; r < rows.length; r++) {
+        const row = rows[r];
+        const nombre = String(row[colNombre] || '').trim();
+        if (!nombre || nombre.toLowerCase() === 'alumno') continue;
+        const materiaData = {};
+        materiaHeaders.forEach((m, idx) => {
+          materiaData[m] = normalizar(row[2 + idx]);
+        });
+        const porcentaje = String(row[lastCol] || '').trim();
+        alumnos.push({ nombre, materias: materiaData, porcentaje, curso: nombreCurso });
+      }
+
+      if (alumnos.length > 0) {
+        datos[nombreCurso] = alumnos;
+        todosCursos.push(nombreCurso);
+      }
+    } catch(e) {
+      errores++;
+      console.warn('Error en planilla', i + 1, e);
+    }
+  }
+
+  btn.classList.remove('spin');
+
+  if (todosCursos.length === 0) {
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('error-screen').style.display = 'block';
+    document.getElementById('error-msg').textContent = 'No se pudo cargar ninguna planilla. Verificá que estén publicadas correctamente en Google Sheets.';
+    return;
+  }
+
+  todasLasMaterias = Array.from(materiasSet);
+
+  const ahora = new Date().toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
+  document.getElementById('last-update').textContent = `Actualizado: ${ahora}${errores > 0 ? ` · ⚠️ ${errores} planilla(s) con error` : ''}`;
+
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('app-content').style.display = 'block';
+
+  poblarFiltros();
+  actualizarStats();
+  checkIncompletos();
+  renderAlumnos();
+  renderCursos();
+  renderMaterias();
+  renderIncompletos();
+}
+
+function poblarFiltros() {
+  const selCurso = document.getElementById('buscar-curso');
+  selCurso.innerHTML = '<option value="">Todos los cursos</option>';
+  todosCursos.forEach(c => {
+    const op = document.createElement('option');
+    op.value = c; op.textContent = c;
+    selCurso.appendChild(op);
+  });
+  const selMateria = document.getElementById('buscar-materia');
+  selMateria.innerHTML = '<option value="">Todas las materias</option>';
+  todasLasMaterias.forEach(m => {
+    const op = document.createElement('option');
+    op.value = m; op.textContent = m;
+    selMateria.appendChild(op);
+  });
+}
+
+function getTodosAlumnos() {
+  return todosCursos.flatMap(c => datos[c] || []);
+}
+
+function alumnoEstado(alumno, materiaFiltro = '') {
+  const entries = materiaFiltro
+    ? Object.entries(alumno.materias).filter(([m]) => m === materiaFiltro)
+    : Object.entries(alumno.materias);
+  const tieneVacio = entries.some(([,v]) => v === 'vacio');
+  const tieneDesap = entries.some(([,v]) => v === 'desaprobado');
+  if (tieneVacio) return 'incompleto';
+  if (tieneDesap) return 'debe';
+  return 'aprobado';
+}
+
+function actualizarStats() {
+  const all = getTodosAlumnos();
+  let aprobadosTodos = 0, conDeuda = 0, sinDato = 0;
+  all.forEach(a => {
+    const e = alumnoEstado(a);
+    if (e === 'aprobado') aprobadosTodos++;
+    else if (e === 'debe') conDeuda++;
+    else sinDato++;
+  });
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total alumnos</div><div class="stat-value blue">${all.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Cursos</div><div class="stat-value blue">${todosCursos.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Aprobaron todo</div><div class="stat-value green">${aprobadosTodos}</div></div>
+    <div class="stat-card"><div class="stat-label">Deben materias</div><div class="stat-value red">${conDeuda}</div></div>
+    <div class="stat-card"><div class="stat-label">Datos incompletos</div><div class="stat-value orange">${sinDato}</div></div>
+  `;
+}
+
+function checkIncompletos() {
+  let totalVacias = 0;
+  getTodosAlumnos().forEach(a => {
+    Object.values(a.materias).forEach(v => { if (v === 'vacio') totalVacias++; });
+  });
+  const alert = document.getElementById('incompletos-alert');
+  if (totalVacias > 0) {
+    alert.style.display = 'flex';
+    document.getElementById('incompletos-msg').textContent =
+      `Hay ${totalVacias} celda${totalVacias > 1 ? 's' : ''} sin completar en las planillas. Revisá la pestaña "Celdas sin completar" para ver el detalle.`;
+  } else {
+    alert.style.display = 'none';
+  }
+}
+
+function filtrar() {
+  const texto = document.getElementById('buscar-alumno').value.toLowerCase();
+  const curso = document.getElementById('buscar-curso').value;
+  const materia = document.getElementById('buscar-materia').value;
+  if (tabActual === 'alumnos') renderAlumnos(texto, curso, materia);
+  if (tabActual === 'cursos') renderCursos(curso);
+  if (tabActual === 'materias') renderMaterias(materia);
+}
+
+function limpiarFiltros() {
+  document.getElementById('buscar-alumno').value = '';
+  document.getElementById('buscar-curso').value = '';
+  document.getElementById('buscar-materia').value = '';
+  filtrar();
+}
+
+function renderAlumnos(texto = '', curso = '', materia = '') {
+  const grid = document.getElementById('grid-alumnos');
+  const empty = document.getElementById('empty-alumnos');
+  let alumnos = getTodosAlumnos();
+  if (texto) alumnos = alumnos.filter(a => a.nombre.toLowerCase().includes(texto));
+  if (curso) alumnos = alumnos.filter(a => a.curso === curso);
+  if (materia) alumnos = alumnos.filter(a => materia in a.materias);
+
+  if (alumnos.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  grid.innerHTML = alumnos.map(a => {
+    const estado = alumnoEstado(a, materia);
+    const entries = materia
+      ? Object.entries(a.materias).filter(([m]) => m === materia)
+      : Object.entries(a.materias);
+    const materiasHTML = entries.map(([m, v]) => `
+      <div class="materia-row ${v === 'aprobado' ? 'aprobada' : v === 'desaprobado' ? 'desaprobada' : 'vacia'}">
+        <span class="materia-nombre">${m}</span>
+        <span class="materia-estado ${v === 'aprobado' ? 'ok' : v === 'desaprobado' ? 'mal' : 'sin'}">
+          ${v === 'aprobado' ? '✓ Aprobado' : v === 'desaprobado' ? '✗ Desaprobado' : '— Sin dato'}
+        </span>
+      </div>`).join('');
+
+    const pctHTML = a.porcentaje ? `<div><span class="pct-badge">📊 ${a.porcentaje}</span></div>` : '';
+
+    return `<div class="alumno-card ${estado}">
+      <div class="card-header">
+        <div>
+          <div class="alumno-nombre">${a.nombre}</div>
+          <div class="alumno-curso">${a.curso}</div>
+        </div>
+        <span class="badge ${estado}">${estado === 'aprobado' ? '✓ Aprobado todo' : estado === 'debe' ? '✗ Debe materias' : '⚠ Incompleto'}</span>
+      </div>
+      <div class="materias-list">${materiasHTML}</div>
+      ${pctHTML}
+      <button class="btn-comunicado" style="margin-top:10px;" onclick="mostrarComunicado('${esc(a.nombre)}','${esc(a.curso)}')">📄 Ver comunicado</button>
+    </div>`;
+  }).join('');
+}
+
+function renderCursos(cursoFiltro = '') {
+  const sec = document.getElementById('cursos-section');
+  const cursos = cursoFiltro ? [cursoFiltro] : todosCursos;
+  sec.innerHTML = cursos.map(curso => {
+    const alumnos = datos[curso] || [];
+    const aprobados = alumnos.filter(a => alumnoEstado(a) === 'aprobado').length;
+    const deben = alumnos.filter(a => alumnoEstado(a) === 'debe').length;
+    const incompletos = alumnos.filter(a => alumnoEstado(a) === 'incompleto').length;
+    const filas = alumnos.map(a => {
+      const estado = alumnoEstado(a);
+      const debe = Object.entries(a.materias).filter(([,v]) => v === 'desaprobado').map(([m]) => m);
+      const vacias = Object.entries(a.materias).filter(([,v]) => v === 'vacio').map(([m]) => m);
+      return `<tr>
+        <td style="font-weight:500;">${a.nombre}</td>
+        <td><span class="badge ${estado}">${estado === 'aprobado' ? '✓ Aprobado' : estado === 'debe' ? '✗ Debe' : '⚠ Incompleto'}</span></td>
+        <td style="color:var(--danger);font-size:12px;">${debe.join(', ') || '—'}</td>
+        <td style="color:#b45309;font-size:12px;">${vacias.join(', ') || '—'}</td>
+        <td style="font-size:12px;font-weight:600;color:var(--accent);">${a.porcentaje || '—'}</td>
+        <td><button class="btn-comunicado" style="padding:4px 10px;width:auto;font-size:12px;" onclick="mostrarComunicado('${esc(a.nombre)}','${esc(curso)}')">Ver comunicado</button></td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="curso-block">
+      <div class="curso-header" onclick="toggleCurso('c_${esc(curso)}')">
+        <div>
+          <div class="curso-nombre">📚 ${curso}</div>
+          <div class="curso-meta">${alumnos.length} alumno${alumnos.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="curso-badges">
+          <span class="badge aprobado">${aprobados} aprobados</span>
+          <span class="badge debe">${deben} deben</span>
+          ${incompletos > 0 ? `<span class="badge incompleto">${incompletos} sin dato</span>` : ''}
+        </div>
+      </div>
+      <div class="curso-body" id="c_${esc(curso)}">
+        <table>
+          <thead><tr><th>Alumno</th><th>Estado</th><th>Materias que debe</th><th>Sin dato</th><th>Porcentaje</th><th>Comunicado</th></tr></thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCurso(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function renderMaterias(filtro = '') {
+  const all = getTodosAlumnos();
+  const mats = filtro ? [filtro] : todasLasMaterias;
+  document.getElementById('tbody-materias').innerHTML = mats.map(m => {
+    const con = all.filter(a => m in a.materias);
+    const aprobados = con.filter(a => a.materias[m] === 'aprobado').length;
+    const desap = con.filter(a => a.materias[m] === 'desaprobado').length;
+    const vacios = con.filter(a => a.materias[m] === 'vacio').length;
+    const base = con.length - vacios;
+    const pct = base > 0 ? Math.round((aprobados / base) * 100) : 0;
+    const color = pct >= 70 ? 'var(--success)' : 'var(--danger)';
+    return `<tr>
+      <td style="font-weight:500;">${m}</td>
+      <td>${con.length}</td>
+      <td style="color:var(--success);font-weight:500;">${aprobados}</td>
+      <td style="color:var(--danger);font-weight:500;">${desap}</td>
+      <td style="color:#b45309;">${vacios}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;"></div>
+          </div>
+          <span style="font-size:12px;font-weight:600;min-width:32px;">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderIncompletos() {
+  const sec = document.getElementById('incompletos-body');
+  let html = '';
+  let hayAlgo = false;
+  todosCursos.forEach(curso => {
+    const alumnos = (datos[curso] || []).filter(a =>
+      Object.values(a.materias).some(v => v === 'vacio')
+    );
+    if (alumnos.length === 0) return;
+    hayAlgo = true;
+    const filas = alumnos.map(a => {
+      const vacias = Object.entries(a.materias).filter(([,v]) => v === 'vacio').map(([m]) => m);
+      return `<tr>
+        <td style="font-weight:500;">${a.nombre}</td>
+        <td style="color:#b45309;font-size:12px;">${vacias.join(', ')}</td>
+        <td style="text-align:center;">${vacias.length}</td>
+      </tr>`;
+    }).join('');
+    html += `<div class="curso-block" style="margin-bottom:12px;">
+      <div class="curso-header" style="background:var(--warning-bg);">
+        <div>
+          <div class="curso-nombre">⚠️ ${curso}</div>
+          <div class="curso-meta">${alumnos.length} alumno${alumnos.length !== 1 ? 's' : ''} con celdas sin completar</div>
+        </div>
+      </div>
+      <div class="curso-body">
+        <table>
+          <thead><tr><th>Alumno</th><th>Materias sin dato</th><th style="text-align:center;">Cant.</th></tr></thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
+    </div>`;
+  });
+  if (!hayAlgo) {
+    html = `<div class="empty-state"><div class="icon">✅</div><h3>Sin celdas vacías</h3><p>Todas las planillas están completas.</p></div>`;
+  }
+  sec.innerHTML = html;
+}
+
+function switchTab(tab, el) {
+  tabActual = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['alumnos','cursos','materias','incompletos'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  document.getElementById('search-bar').style.display = tab === 'incompletos' ? 'none' : 'grid';
+  if (tab === 'cursos') renderCursos(document.getElementById('buscar-curso').value);
+  if (tab === 'materias') renderMaterias(document.getElementById('buscar-materia').value);
+}
+
+function mostrarComunicado(nombre, curso) {
+  const alumno = (datos[curso] || []).find(a => a.nombre === nombre);
+  if (!alumno) return;
+  const estado = alumnoEstado(alumno);
+  const debe = Object.entries(alumno.materias).filter(([,v]) => v === 'desaprobado').map(([m]) => m);
+  const aprobadas = Object.entries(alumno.materias).filter(([,v]) => v === 'aprobado').map(([m]) => m);
+  const vacias = Object.entries(alumno.materias).filter(([,v]) => v === 'vacio').map(([m]) => m);
+  const pct = alumno.porcentaje ? `\nAsistencia / porcentaje registrado: ${alumno.porcentaje}` : '';
+  const hoy = new Date().toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  let texto = '';
+  if (estado === 'aprobado') {
+    texto = `Estimada familia de ${nombre}:
+
+Nos es grato comunicarles que el/la alumno/a ${nombre}, perteneciente al curso ${curso}, ha APROBADO satisfactoriamente todas las materias correspondientes al período evaluado.
+
+Materias aprobadas:
+${aprobadas.map(m => `  • ${m}`).join('\n')}
+${pct}
+
+Felicitamos al/la alumno/a por su esfuerzo y dedicación. Los invitamos a seguir acompañando su proceso educativo.
+
+Atentamente,
+La Institución
+${hoy}`;
+  } else if (estado === 'debe') {
+    texto = `Estimada familia de ${nombre}:
+
+Nos comunicamos para informarles que el/la alumno/a ${nombre}, perteneciente al curso ${curso}, presenta las siguientes materias PENDIENTES de aprobación:
+
+Materias desaprobadas:
+${debe.map(m => `  • ${m}`).join('\n')}
+
+${aprobadas.length > 0 ? `Materias aprobadas:\n${aprobadas.map(m => `  • ${m}`).join('\n')}\n` : ''}${pct}
+
+Les solicitamos comunicarse con la institución a la brevedad posible para coordinar los pasos a seguir y brindar el acompañamiento necesario al/la alumno/a.
+
+Atentamente,
+La Institución
+${hoy}`;
+  } else {
+    texto = `Estimada familia de ${nombre}:
+
+Nos comunicamos para informarles que el/la alumno/a ${nombre}, perteneciente al curso ${curso}, presenta su situación académica AÚN INCOMPLETA, dado que existen calificaciones pendientes de registro en el sistema.
+
+Materias sin calificación registrada:
+${vacias.map(m => `  • ${m}`).join('\n')}
+
+${debe.length > 0 ? `Materias desaprobadas:\n${debe.map(m => `  • ${m}`).join('\n')}\n` : ''}${aprobadas.length > 0 ? `Materias aprobadas:\n${aprobadas.map(m => `  • ${m}`).join('\n')}\n` : ''}${pct}
+
+Nos pondremos en contacto con ustedes una vez completada la carga de calificaciones.
+
+Atentamente,
+La Institución
+${hoy}`;
+  }
+
+  document.getElementById('textoComunicado').textContent = texto;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function cerrarModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function copiarTexto() {
+  const texto = document.getElementById('textoComunicado').textContent;
+  navigator.clipboard.writeText(texto).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    btn.textContent = '✓ Copiado!';
+    setTimeout(() => btn.textContent = '📋 Copiar texto', 2000);
+  });
+}
+
+function imprimirComunicado() {
+  const texto = document.getElementById('textoComunicado').textContent;
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>Comunicado</title><style>body{font-family:Georgia,serif;padding:3cm;font-size:12pt;line-height:1.8;}pre{white-space:pre-wrap;font-family:inherit;}</style></head><body><pre>${texto}</pre></body></html>`);
+  w.document.close();
+  w.print();
+}
+
+function esc(str) {
+  return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) cerrarModal();
+});
+
+// Carga automática al abrir
+cargarTodo();
+</script>
+</body>
+</html>
