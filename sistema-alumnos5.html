@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Seguimiento Académico</title>
+<style>
+  :root {
+    --bg:#f5f4f0;--surface:#fff;--surface-2:#f9f8f5;--border:#e2e0d8;
+    --border-strong:#c8c5bb;--text:#1a1917;--text-muted:#6b6860;
+    --accent:#2563eb;--accent-bg:#eff6ff;--accent-border:#bfdbfe;
+    --success:#15803d;--success-bg:#f0fdf4;--success-border:#bbf7d0;
+    --danger:#b91c1c;--danger-bg:#fef2f2;--danger-border:#fecaca;
+    --warning:#92400e;--warning-bg:#fffbeb;--warning-border:#fde68a;
+    --radius:8px;--font:'Segoe UI',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .header-left{display:flex;align-items:center;gap:12px;}
+  .logo{width:36px;height:36px;background:var(--accent);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;}
+  header h1{font-size:17px;font-weight:600;}
+  header p{font-size:13px;color:var(--text-muted);}
+  .btn-refresh{padding:7px 14px;background:transparent;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:13px;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;gap:6px;transition:all .15s;}
+  .btn-refresh:hover{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border);}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .spin-icon{animation:spin .8s linear infinite;display:inline-block;}
+  main{max-width:1100px;margin:0 auto;padding:2rem;}
+  .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem;gap:1rem;}
+  .loading-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+  .loading-text{color:var(--text-muted);font-size:14px;}
+  .loading-progress{font-size:13px;color:var(--accent);font-weight:500;}
+  .error-screen{background:var(--danger-bg);border:1px solid var(--danger-border);border-radius:12px;padding:2rem;text-align:center;color:var(--danger);margin:2rem 0;display:none;}
+  .error-screen h3{margin-bottom:8px;}
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;}
+  .stat-label{font-size:12px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+  .stat-value{font-size:24px;font-weight:600;}
+  .blue{color:var(--accent);}.green{color:var(--success);}.red{color:var(--danger);}.orange{color:#b45309;}
+  .search-bar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;}
+  .field label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:500;}
+  .field select,.field input{width:100%;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:14px;background:var(--surface-2);color:var(--text);outline:none;}
+  .field select:focus,.field input:focus{border-color:var(--accent);}
+  .btn-search{padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;}
+  .btn-search:hover{background:#1d4ed8;}
+  .btn-clear{padding:8px 16px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:var(--radius);font-size:13px;cursor:pointer;}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:1.5rem;}
+  .tab{padding:8px 16px;font-size:14px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-muted);font-weight:500;transition:all .15s;margin-bottom:-1px;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .tab:hover:not(.active){color:var(--text);}
+  .results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+  .alumno-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;transition:box-shadow .15s;}
+  .alumno-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08);}
+  .alumno-card.aprobado{border-left:4px solid var(--success);}
+  .alumno-card.debe{border-left:4px solid var(--danger);}
+  .alumno-card.incompleto{border-left:4px solid #d97706;}
+  .card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+  .alumno-nombre{font-weight:600;font-size:15px;}
+  .alumno-curso{font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+  .badge.aprobado{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border);}
+  .badge.debe{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border);}
+  .badge.incompleto{background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning-border);}
+  .materias-list{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+  .materia-row{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;font-size:13px;background:var(--surface-2);}
+  .materia-row.aprobada{background:var(--success-bg);}
+  .materia-row.desaprobada{background:var(--danger-bg);}
+  .materia-row.vacia{background:var(--warning-bg);}
+  .materia-nombre{color:var(--text-muted);font-size:12px;}
+  .materia-estado{font-size:11px;font-weight:600;}
+  .materia-estado.ok{color:var(--success);}.materia-estado.mal{color:var(--danger);}.materia-estado.sin{color:#b45309;}
+  .pct-badge{display:inline-block;margin-bottom:8px;padding:3px 10px;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);border-radius:20px;font-size:11px;font-weight:600;}
+  .btn-comunicado{width:100%;padding:7px;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);border-radius:var(--radius);font-size:13px;cursor:pointer;font-weight:500;}
+  .btn-comunicado:hover{background:#dbeafe;}
+  .alert-box{border-radius:var(--radius);padding:.75rem 1rem;font-size:13px;margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+  .alert-box.warning{background:var(--warning-bg);border:1px solid var(--warning-border);color:var(--warning);}
+  .alert-box.info{background:var(--accent-bg);border:1px solid var(--accent-border);color:#1e40af;}
+  .curso-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;}
+  .curso-header{padding:1rem 1.25rem;background:var(--surface-2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;}
+  .curso-header:hover{background:var(--accent-bg);}
+  .curso-nombre{font-weight:600;font-size:15px;}
+  .curso-meta{font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .curso-badges{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .curso-body{padding:1rem 1.25rem;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{background:var(--surface-2);padding:8px 10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);border-bottom:1px solid var(--border);}
+  td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--surface-2);}
+  .empty-state{text-align:center;padding:3rem;color:var(--text-muted);}
+  .empty-state .icon{font-size:3rem;margin-bottom:1rem;}
+  .empty-state h3{font-size:16px;margin-bottom:6px;color:var(--text);}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border-radius:12px;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;padding:2rem;position:relative;}
+  .modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);}
+  .modal h2{font-size:18px;font-weight:600;margin-bottom:6px;}
+  .modal .subtitle{font-size:13px;color:var(--text-muted);margin-bottom:1.5rem;}
+  .comunicado-texto{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;font-size:14px;line-height:1.75;white-space:pre-wrap;margin-bottom:1rem;font-family:Georgia,serif;}
+  .modal-actions{display:flex;gap:8px;}
+  .btn-copy{flex:1;padding:9px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:14px;cursor:pointer;font-weight:500;}
+  .btn-print{flex:1;padding:9px;background:transparent;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:14px;cursor:pointer;color:var(--text);}
+  #app-content{display:none;}
+  @media(max-width:640px){.search-bar{grid-template-columns:1fr;}.results-grid{grid-template-columns:1fr;}main{padding:1rem;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div>
+      <h1>Sistema de Seguimiento Académico</h1>
+      <p id="last-update">Cargando planillas...</p>
+    </div>
+  </div>
+  <button class="btn-refresh" id="btnRefresh" onclick="cargarTodo()">
+    <svg id="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    Actualizar
+  </button>
+</header>
+
+<main>
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Conectando con Google Sheets...</div>
+    <div class="loading-progress" id="loading-progress"></div>
+  </div>
+
+  <div id="error-screen" class="error-screen">
+    <h3>⚠️ Error al cargar las planillas</h3>
+    <p id="error-msg"></p>
+    <button onclick="cargarTodo()" style="margin-top:1rem;padding:8px 20px;background:var(--danger);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-size:14px;">Reintentar</button>
+  </div>
+
+  <div id="app-content">
+    <div id="incompletos-alert" class="alert-box warning" style="display:none;">
+      <span>⚠️</span><span id="incompletos-msg"></span>
+    </div>
+    <div class="stats-row" id="stats-row"></div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('alumnos',this)">Por alumno</div>
+      <div class="tab" onclick="switchTab('cursos',this)">Por curso</div>
+      <div class="tab" onclick="switchTab('materias',this)">Por materia</div>
+      <div class="tab" onclick="switchTab('incompletos',this)">Celdas sin completar</div>
+    </div>
+    <div class="search-bar" id="search-bar">
+      <div class="field"><label>Alumno</label><input type="text" id="buscar-alumno" placeholder="Escribí un nombre..." oninput="filtrar()"></div>
+      <div class="field"><label>Curso</label><select id="buscar-curso" onchange="filtrar()"><option value="">Todos los cursos</option></select></div>
+      <div class="field"><label>Materia</label><select id="buscar-materia" onchange="filtrar()"><option value="">Todas las materias</option></select></div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn-search" onclick="filtrar()">Buscar</button>
+        <button class="btn-clear" onclick="limpiarFiltros()">Limpiar</button>
+      </div>
+    </div>
+    <div id="tab-alumnos">
+      <div class="results-grid" id="grid-alumnos"></div>
+      <div class="empty-state" id="empty-alumnos" style="display:none;"><div class="icon">🔍</div><h3>Sin resultados</h3><p>Probá ajustando los filtros.</p></div>
+    </div>
+    <div id="tab-cursos" style="display:none;"><div id="cursos-section"></div></div>
+    <div id="tab-materias" style="display:none;">
+      <div class="curso-block"><div class="curso-body">
+        <table><thead><tr><th>Materia</th><th>Total</th><th>Aprobados</th><th>Desaprobados</th><th>Sin dato</th><th>% aprobación</th></tr></thead>
+        <tbody id="tbody-materias"></tbody></table>
+      </div></div>
+    </div>
+    <div id="tab-incompletos" style="display:none;"><div id="incompletos-body"></div></div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="cerrarModal()">✕</button>
+    <h2>Comunicado para familia</h2>
+    <p class="subtitle">Podés copiar este texto y enviarlo por cualquier medio.</p>
+    <div class="comunicado-texto" id="textoComunicado"></div>
+    <div class="modal-actions">
+      <button class="btn-copy" onclick="copiarTexto()">📋 Copiar texto</button>
+      <button class="btn-print" onclick="imprimirComunicado()">🖨️ Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── PLANILLAS ──────────────────────────────────────────────────────────────
+const PLANILLAS = [
+  { nombre:'1°1°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vRfD2CZj_dFKYCf0Q_IJgxiR6iq4DcE08WQlipQYMbYm42AU8eGyeYZv6ipxgHey_3hNK_bkaM_Le9z/pub?output=csv' },
+  { nombre:'1°2°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTd4C0Uyibkadombt1bNrMjm3qXUnCoosZtqb5oZA0QWFnDs1rlPcXLzsCjLZXWtt-DiSt9fcb8wGwU/pub?output=csv' },
+  { nombre:'1°3°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7FYoBPrnr4QgeTRp4RNuxjmU_1Ow5kzjm1xMk7aO6yZuFLLrzqFwqvO3iOWiMfXRM7WCFVajQ1qY9/pub?output=csv' },
+  { nombre:'2°1°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyMEsTaB8nuIVNoKNvun6GaLGpWeS3_QJiUrgfdlIEwosxEUDDMqIyvpVNXQ9D1c2LzosQl3ac3dcp/pub?output=csv' },
+  { nombre:'2°2°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vR6zqdYZEHIG3d85_hAAeze79wzCVxYVv-zSOIof0PLHKdNlk9VCQO-s263jRNKW_P3xrlBKV8NtIyr/pub?output=csv' },
+  { nombre:'2°3°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vRPopXWeKNgN-ErA5XeWWhC1G7DbXcY7ZJ1KeBF9EnQuz7YSZ-oIEAHHEIIrO8I0zPIf9wVql06hkrJ/pub?output=csv' },
+  { nombre:'3°1°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vS3UDFsI0E-kuWBSsAC7ISHP5tn1sDHlWw2MpCgKL4uk2SlF0BojLb8vEsy7xCgm4mf0czCxVoEVnY1/pub?output=csv' },
+  { nombre:'3°2°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vRStR3DZ4K9ENUhJASm4eVNpkW6UQTTivINWioYvWkGAhlSsKT97qv-Tz4SkHfOl5dfNXYE6SPl2ruu/pub?output=csv' },
+  { nombre:'3°3°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vT41AIBOq54Vb8WLNf6IFQmu-rYJGbWSq8Cd8SRDSWbTeK3DtRrgWPFQurCQiatn-XTuM1IFubsxgXl/pub?output=csv' },
+  { nombre:'4°1°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQueHtkAGTIbVPoc3pu9jKJPmz6nvbuwFH_lAhQ9-N2b-mGNzkx4TZIH5hQZCzKzZwrCuTnRWJVFQMO/pub?output=csv' },
+  { nombre:'4°2°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vRcUsvB7dHBQlr8eP8Hm8nT2Zk-xgZQVDmyTs40Eoq3iDmnyhrjocdv69641tSk5mgk8T9E2ZVScVlA/pub?output=csv' },
+  { nombre:'5°1°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-jqvDuYjVpmFOM5TaOHOQ4juZa9b6futy6EDb-b3gkyIP2LOwMBXPg_4O5Nww8yQkdTgy7KUIMJmw/pub?output=csv' },
+  { nombre:'5°2°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9eJ7F8jYVZMsRzd7UtM-SvDZPxU8NA6OBlPG3KNCmDuRnwJjfDkPNi-NcKskN2Xwpn2OIA3TV5ERn/pub?output=csv' },
+  { nombre:'6°1°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vRcYNi_zkn4tTNW2EgoEg7CYYDFG2syRq5fhQSv6ELvRn3d_RIQ5OLmwm_ZpEmNoGwnsmYsVevV0RqG/pub?output=csv' },
+  { nombre:'7°1°', url:'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0aIeTqNmscUrRBD73u8YvgYBDiJ7exIlzIfpIviwrirgayTV94aeHuKr6WZujQDuuh0_ujVyLj3CW/pub?output=csv' }
+];
+
+// ── CONSTANTES ─────────────────────────────────────────────────────────────
+const APROBADO_VALS  = ['aprobado','a','si','sí','s','1','true','aprobó','aprobo'];
+const DESAPROBADO_VALS = ['desaprobado','d','no','n','0','false','desaprobó','desaprobo','reprobado'];
+
+let datos = {}, todasLasMaterias = [], todosCursos = [], tabActual = 'alumnos';
+
+// ── UTILIDADES ─────────────────────────────────────────────────────────────
+function normalizar(val) {
+  if (val === null || val === undefined || String(val).trim() === '') return 'vacio';
+  const v = String(val).trim().toLowerCase();
+  if (APROBADO_VALS.includes(v))   return 'aprobado';
+  if (DESAPROBADO_VALS.includes(v)) return 'desaprobado';
+  return 'vacio';
+}
+
+function parseCSV(text) {
+  // Normalizar saltos de línea
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
+  return lines.map(line => {
+    const cols = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; continue; }
+      if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
+      cur += c;
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+async function fetchCSV(url) {
+  // Las URLs "pub?output=csv" de Google Sheets redirigen a googleusercontent.com
+  // sin cabecera Access-Control-Allow-Origin, así que el navegador bloquea el
+  // fetch directo por CORS al estar el sitio en otro dominio (GitHub Pages).
+  // Usamos un proxy que sí agrega esa cabecera.
+  const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+  const resp = await fetch(proxyUrl);
+  if (!resp.ok) throw new Error('No se pudo cargar la planilla');
+  return await resp.text();
+}
+
+// ── CARGA PRINCIPAL ────────────────────────────────────────────────────────
+async function cargarTodo() {
+  datos = {}; todasLasMaterias = []; todosCursos = [];
+  const materiasSet = new Set();
+
+  document.getElementById('loading-screen').style.display = 'flex';
+  document.getElementById('error-screen').style.display   = 'none';
+  document.getElementById('app-content').style.display    = 'none';
+  document.getElementById('refresh-icon').classList.add('spin-icon');
+
+  let errores = 0;
+
+  for (let i = 0; i < PLANILLAS.length; i++) {
+    const planilla = PLANILLAS[i];
+    document.getElementById('loading-progress').textContent =
+      `Cargando ${planilla.nombre} (${i+1}/${PLANILLAS.length})...`;
+
+    try {
+      const text = await fetchCSV(planilla.url);
+      const rows = parseCSV(text);
+      if (rows.length < 2) continue;
+
+      const headers  = rows[0].map(h => String(h).trim());
+      const lastCol  = headers.length - 1;
+      // Col 0 = N° orden | Col 1 = Alumno | Col 2..lastCol-1 = Materias | lastCol = Porcentaje
+      const materiaHeaders = headers.slice(2, lastCol).filter(h => h !== '');
+      materiaHeaders.forEach(m => materiasSet.add(m));
+
+      const alumnos = [];
+      for (let r = 1; r < rows.length; r++) {
+        const row    = rows[r];
+        const nombre = String(row[1] || '').trim();
+        if (!nombre || nombre.toLowerCase() === 'alumno') continue;
+
+        const materiaData = {};
+        materiaHeaders.forEach((m, idx) => {
+          materiaData[m] = normalizar(row[2 + idx]);
+        });
+        const porcentaje = String(row[lastCol] || '').trim();
+        alumnos.push({ nombre, materias: materiaData, porcentaje, curso: planilla.nombre });
+      }
+
+      if (alumnos.length > 0) {
+        datos[planilla.nombre] = alumnos;
+        todosCursos.push(planilla.nombre);
+      }
+    } catch(e) {
+      errores++;
+      console.warn(`Error en ${planilla.nombre}:`, e.message);
+    }
+  }
+
+  document.getElementById('refresh-icon').classList.remove('spin-icon');
+  document.getElementById('loading-screen').style.display = 'none';
+
+  if (todosCursos.length === 0) {
+    document.getElementById('error-screen').style.display = 'block';
+    document.getElementById('error-msg').textContent =
+      'No se pudo cargar ninguna planilla. Verificá que estén publicadas en Google Sheets (Archivo → Compartir → Publicar en la web).';
+    return;
+  }
+
+  todasLasMaterias = Array.from(materiasSet);
+  const ahora = new Date().toLocaleString('es-AR', { dateStyle:'short', timeStyle:'short' });
+  document.getElementById('last-update').textContent =
+    `Actualizado: ${ahora}` + (errores > 0 ? ` · ⚠️ ${errores} planilla(s) con error` : '');
+
+  document.getElementById('app-content').style.display = 'block';
+  poblarFiltros();
+  actualizarStats();
+  checkIncompletos();
+  renderAlumnos();
+  renderCursos();
+  renderMaterias();
+  renderIncompletos();
+}
+
+// ── FILTROS ────────────────────────────────────────────────────────────────
+function poblarFiltros() {
+  const sc = document.getElementById('buscar-curso');
+  sc.innerHTML = '<option value="">Todos los cursos</option>';
+  todosCursos.forEach(c => { const o = document.createElement('option'); o.value = o.textContent = c; sc.appendChild(o); });
+
+  const sm = document.getElementById('buscar-materia');
+  sm.innerHTML = '<option value="">Todas las materias</option>';
+  todasLasMaterias.forEach(m => { const o = document.createElement('option'); o.value = o.textContent = m; sm.appendChild(o); });
+}
+
+function getTodosAlumnos() { return todosCursos.flatMap(c => datos[c] || []); }
+
+function alumnoEstado(a, mf = '') {
+  const entries = mf ? Object.entries(a.materias).filter(([m]) => m === mf) : Object.entries(a.materias);
+  if (entries.some(([,v]) => v === 'vacio'))       return 'incompleto';
+  if (entries.some(([,v]) => v === 'desaprobado')) return 'debe';
+  return 'aprobado';
+}
+
+function filtrar() {
+  const txt = document.getElementById('buscar-alumno').value.toLowerCase();
+  const cur = document.getElementById('buscar-curso').value;
+  const mat = document.getElementById('buscar-materia').value;
+  if (tabActual === 'alumnos')  renderAlumnos(txt, cur, mat);
+  if (tabActual === 'cursos')   renderCursos(cur);
+  if (tabActual === 'materias') renderMaterias(mat);
+}
+
+function limpiarFiltros() {
+  document.getElementById('buscar-alumno').value = '';
+  document.getElementById('buscar-curso').value  = '';
+  document.getElementById('buscar-materia').value = '';
+  filtrar();
+}
+
+// ── STATS ──────────────────────────────────────────────────────────────────
+function actualizarStats() {
+  const all = getTodosAlumnos();
+  let ap = 0, de = 0, ic = 0;
+  all.forEach(a => { const e = alumnoEstado(a); if(e==='aprobado') ap++; else if(e==='debe') de++; else ic++; });
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total alumnos</div><div class="stat-value blue">${all.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Cursos</div><div class="stat-value blue">${todosCursos.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Aprobaron todo</div><div class="stat-value green">${ap}</div></div>
+    <div class="stat-card"><div class="stat-label">Deben materias</div><div class="stat-value red">${de}</div></div>
+    <div class="stat-card"><div class="stat-label">Datos incompletos</div><div class="stat-value orange">${ic}</div></div>`;
+}
+
+function checkIncompletos() {
+  let n = 0;
+  getTodosAlumnos().forEach(a => Object.values(a.materias).forEach(v => { if(v==='vacio') n++; }));
+  const el = document.getElementById('incompletos-alert');
+  if (n > 0) { el.style.display='flex'; document.getElementById('incompletos-msg').textContent=`Hay ${n} celda${n>1?'s':''} sin completar. Revisá la pestaña "Celdas sin completar".`; }
+  else el.style.display='none';
+}
+
+// ── RENDER ALUMNOS ─────────────────────────────────────────────────────────
+function renderAlumnos(txt='', cur='', mat='') {
+  let alumnos = getTodosAlumnos();
+  if (txt) alumnos = alumnos.filter(a => a.nombre.toLowerCase().includes(txt));
+  if (cur) alumnos = alumnos.filter(a => a.curso === cur);
+  if (mat) alumnos = alumnos.filter(a => mat in a.materias);
+
+  const grid  = document.getElementById('grid-alumnos');
+  const empty = document.getElementById('empty-alumnos');
+  if (!alumnos.length) { grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+
+  grid.innerHTML = alumnos.map(a => {
+    const est = alumnoEstado(a, mat);
+    const entries = mat ? Object.entries(a.materias).filter(([m])=>m===mat) : Object.entries(a.materias);
+    const matsHTML = entries.map(([m,v]) => `
+      <div class="materia-row ${v==='aprobado'?'aprobada':v==='desaprobado'?'desaprobada':'vacia'}">
+        <span class="materia-nombre">${m}</span>
+        <span class="materia-estado ${v==='aprobado'?'ok':v==='desaprobado'?'mal':'sin'}">
+          ${v==='aprobado'?'✓ Aprobado':v==='desaprobado'?'✗ Desaprobado':'— Sin dato'}
+        </span>
+      </div>`).join('');
+    return `<div class="alumno-card ${est}">
+      <div class="card-header">
+        <div><div class="alumno-nombre">${a.nombre}</div><div class="alumno-curso">${a.curso}</div></div>
+        <span class="badge ${est}">${est==='aprobado'?'✓ Aprobado todo':est==='debe'?'✗ Debe materias':'⚠ Incompleto'}</span>
+      </div>
+      <div class="materias-list">${matsHTML}</div>
+      ${a.porcentaje?`<div><span class="pct-badge">📊 ${a.porcentaje}</span></div>`:''}
+      <button class="btn-comunicado" onclick="mostrarComunicado('${esc(a.nombre)}','${esc(a.curso)}')">📄 Ver comunicado</button>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER CURSOS ──────────────────────────────────────────────────────────
+function renderCursos(cf='') {
+  const cursos = cf ? [cf] : todosCursos;
+  document.getElementById('cursos-section').innerHTML = cursos.map(curso => {
+    const alumnos = datos[curso]||[];
+    const ap = alumnos.filter(a=>alumnoEstado(a)==='aprobado').length;
+    const de = alumnos.filter(a=>alumnoEstado(a)==='debe').length;
+    const ic = alumnos.filter(a=>alumnoEstado(a)==='incompleto').length;
+    const filas = alumnos.map(a => {
+      const est   = alumnoEstado(a);
+      const debe  = Object.entries(a.materias).filter(([,v])=>v==='desaprobado').map(([m])=>m);
+      const vacias= Object.entries(a.materias).filter(([,v])=>v==='vacio').map(([m])=>m);
+      return `<tr>
+        <td style="font-weight:500;">${a.nombre}</td>
+        <td><span class="badge ${est}">${est==='aprobado'?'✓ Aprobado':est==='debe'?'✗ Debe':'⚠ Incompleto'}</span></td>
+        <td style="color:var(--danger);font-size:12px;">${debe.join(', ')||'—'}</td>
+        <td style="color:#b45309;font-size:12px;">${vacias.join(', ')||'—'}</td>
+        <td style="font-size:12px;font-weight:600;color:var(--accent);">${a.porcentaje||'—'}</td>
+        <td><button class="btn-comunicado" style="padding:4px 10px;width:auto;font-size:12px;" onclick="mostrarComunicado('${esc(a.nombre)}','${esc(curso)}')">Ver comunicado</button></td>
+      </tr>`;
+    }).join('');
+    return `<div class="curso-block">
+      <div class="curso-header" onclick="toggleCurso('c_${esc(curso)}')">
+        <div><div class="curso-nombre">📚 ${curso}</div><div class="curso-meta">${alumnos.length} alumno${alumnos.length!==1?'s':''}</div></div>
+        <div class="curso-badges">
+          <span class="badge aprobado">${ap} aprobados</span>
+          <span class="badge debe">${de} deben</span>
+          ${ic>0?`<span class="badge incompleto">${ic} sin dato</span>`:''}
+        </div>
+      </div>
+      <div class="curso-body" id="c_${esc(curso)}">
+        <table><thead><tr><th>Alumno</th><th>Estado</th><th>Materias que debe</th><th>Sin dato</th><th>Porcentaje</th><th>Comunicado</th></tr></thead>
+        <tbody>${filas}</tbody></table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCurso(id) { const el=document.getElementById(id); if(el) el.style.display=el.style.display==='none'?'block':'none'; }
+
+// ── RENDER MATERIAS ────────────────────────────────────────────────────────
+function renderMaterias(mf='') {
+  const all  = getTodosAlumnos();
+  const mats = mf ? [mf] : todasLasMaterias;
+  document.getElementById('tbody-materias').innerHTML = mats.map(m => {
+    const con = all.filter(a => m in a.materias);
+    const ap  = con.filter(a=>a.materias[m]==='aprobado').length;
+    const de  = con.filter(a=>a.materias[m]==='desaprobado').length;
+    const va  = con.filter(a=>a.materias[m]==='vacio').length;
+    const base= con.length - va;
+    const pct = base>0 ? Math.round(ap/base*100) : 0;
+    const col = pct>=70?'var(--success)':'var(--danger)';
+    return `<tr>
+      <td style="font-weight:500;">${m}</td><td>${con.length}</td>
+      <td style="color:var(--success);font-weight:500;">${ap}</td>
+      <td style="color:var(--danger);font-weight:500;">${de}</td>
+      <td style="color:#b45309;">${va}</td>
+      <td><div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;"></div>
+        </div>
+        <span style="font-size:12px;font-weight:600;min-width:32px;">${pct}%</span>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── RENDER INCOMPLETOS ─────────────────────────────────────────────────────
+function renderIncompletos() {
+  let html = '', hayAlgo = false;
+  todosCursos.forEach(curso => {
+    const alumnos = (datos[curso]||[]).filter(a=>Object.values(a.materias).some(v=>v==='vacio'));
+    if (!alumnos.length) return;
+    hayAlgo = true;
+    const filas = alumnos.map(a => {
+      const va = Object.entries(a.materias).filter(([,v])=>v==='vacio').map(([m])=>m);
+      return `<tr><td style="font-weight:500;">${a.nombre}</td><td style="color:#b45309;font-size:12px;">${va.join(', ')}</td><td style="text-align:center;">${va.length}</td></tr>`;
+    }).join('');
+    html += `<div class="curso-block" style="margin-bottom:12px;">
+      <div class="curso-header" style="background:var(--warning-bg);cursor:default;">
+        <div><div class="curso-nombre">⚠️ ${curso}</div><div class="curso-meta">${alumnos.length} alumno${alumnos.length!==1?'s':''} con celdas sin completar</div></div>
+      </div>
+      <div class="curso-body">
+        <table><thead><tr><th>Alumno</th><th>Materias sin dato</th><th style="text-align:center;">Cant.</th></tr></thead>
+        <tbody>${filas}</tbody></table>
+      </div>
+    </div>`;
+  });
+  document.getElementById('incompletos-body').innerHTML = hayAlgo ? html :
+    `<div class="empty-state"><div class="icon">✅</div><h3>Sin celdas vacías</h3><p>Todas las planillas están completas.</p></div>`;
+}
+
+// ── TABS ───────────────────────────────────────────────────────────────────
+function switchTab(tab, el) {
+  tabActual = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['alumnos','cursos','materias','incompletos'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+  });
+  document.getElementById('search-bar').style.display = tab==='incompletos'?'none':'grid';
+  if (tab==='cursos')   renderCursos(document.getElementById('buscar-curso').value);
+  if (tab==='materias') renderMaterias(document.getElementById('buscar-materia').value);
+}
+
+// ── COMUNICADO ─────────────────────────────────────────────────────────────
+function mostrarComunicado(nombre, curso) {
+  const a = (datos[curso]||[]).find(x=>x.nombre===nombre);
+  if (!a) return;
+  const est    = alumnoEstado(a);
+  const debe   = Object.entries(a.materias).filter(([,v])=>v==='desaprobado').map(([m])=>m);
+  const aprobadas = Object.entries(a.materias).filter(([,v])=>v==='aprobado').map(([m])=>m);
+  const vacias = Object.entries(a.materias).filter(([,v])=>v==='vacio').map(([m])=>m);
+  const pct    = a.porcentaje ? `\nAsistencia / porcentaje registrado: ${a.porcentaje}` : '';
+  const hoy    = new Date().toLocaleDateString('es-AR',{year:'numeric',month:'long',day:'numeric'});
+
+  let texto = '';
+  if (est==='aprobado') {
+    texto = `Estimada familia de ${nombre}:\n\nNos es grato comunicarles que el/la alumno/a ${nombre}, perteneciente al curso ${curso}, ha APROBADO satisfactoriamente todas las materias correspondientes al período evaluado.\n\nMaterias aprobadas:\n${aprobadas.map(m=>`  • ${m}`).join('\n')}\n${pct}\nFelicitamos al/la alumno/a por su esfuerzo y dedicación.\n\nAtentamente,\nLa Institución\n${hoy}`;
+  } else if (est==='debe') {
+    texto = `Estimada familia de ${nombre}:\n\nNos comunicamos para informarles que el/la alumno/a ${nombre}, perteneciente al curso ${curso}, presenta las siguientes materias PENDIENTES de aprobación:\n\nMaterias desaprobadas:\n${debe.map(m=>`  • ${m}`).join('\n')}\n\n${aprobadas.length>0?`Materias aprobadas:\n${aprobadas.map(m=>`  • ${m}`).join('\n')}\n`:''}${pct}\nLes solicitamos comunicarse con la institución a la brevedad posible.\n\nAtentamente,\nLa Institución\n${hoy}`;
+  } else {
+    texto = `Estimada familia de ${nombre}:\n\nNos comunicamos para informarles que el/la alumno/a ${nombre}, perteneciente al curso ${curso}, presenta su situación académica AÚN INCOMPLETA, dado que existen calificaciones pendientes de registro.\n\nMaterias sin calificación:\n${vacias.map(m=>`  • ${m}`).join('\n')}\n\n${debe.length>0?`Materias desaprobadas:\n${debe.map(m=>`  • ${m}`).join('\n')}\n`:''}${aprobadas.length>0?`Materias aprobadas:\n${aprobadas.map(m=>`  • ${m}`).join('\n')}\n`:''}${pct}\nNos pondremos en contacto una vez completada la carga.\n\nAtentamente,\nLa Institución\n${hoy}`;
+  }
+  document.getElementById('textoComunicado').textContent = texto;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function cerrarModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+function copiarTexto() {
+  navigator.clipboard.writeText(document.getElementById('textoComunicado').textContent).then(() => {
+    const b = document.querySelector('.btn-copy');
+    b.textContent = '✓ Copiado!';
+    setTimeout(() => b.textContent = '📋 Copiar texto', 2000);
+  });
+}
+
+function imprimirComunicado() {
+  const texto = document.getElementById('textoComunicado').textContent;
+  const w = window.open('','_blank');
+  w.document.write(`<html><head><title>Comunicado</title><style>body{font-family:Georgia,serif;padding:3cm;font-size:12pt;line-height:1.8;}pre{white-space:pre-wrap;font-family:inherit;}</style></head><body><pre>${texto}</pre></body></html>`);
+  w.document.close(); w.print();
+}
+
+function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+document.getElementById('modalOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) cerrarModal(); });
+
+// Inicio automático
+cargarTodo();
+</script>
+</body>
+</html>
