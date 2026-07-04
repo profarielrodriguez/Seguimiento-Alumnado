@@ -489,50 +489,25 @@
 </div>
 
 <script>
+// Planillas con nombre de curso hardcodeado y URL CSV publicada
 const PLANILLAS = [
-  { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQueHtkAGTIbVPoc3pu9jKJPmz6nvbuwFH_lAhQ9-N2b-mGNzkx4TZIH5hQZCzKzZwrCuTnRWJVFQMO/pub?output=csv' },
-  { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSGTePAv90C5JBpK9XJJZHFL8AY2kL6BKUEFmGHzhX48qGKRrA-yBy3ANPF_eor7yVWWQ1--YDhkN38/pub?output=csv' },
-  { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJOUuanmwM5rHHKFs4AxtA7rYkTlSgmtN27tZxYR-QiqfJR2tSkblTvjM4_oDlInxjxAfhqw-azjiI/pub?output=csv' },
-  { url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQY-38LUA2pPiiQ06kFdL9MED6WXzSUVjHL-8oIH3x36EIJeKPWIN9WHCeSxWpgstYH0PGPREfHl5WZ/pub?output=csv' }
+  { nombre: '1°1°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRfD2CZj_dFKYCf0Q_IJgxiR6iq4DcE08WQlipQYMbYm42AU8eGyeYZv6ipxgHey_3hNK_bkaM_Le9z/pub?output=csv' },
+  { nombre: '1°2°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTd4C0Uyibkadombt1bNrMjm3qXUnCoosZtqb5oZA0QWFnDs1rlPcXLzsCjLZXWtt-DiSt9fcb8wGwU/pub?output=csv' },
+  { nombre: '1°3°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7FYoBPrnr4QgeTRp4RNuxjmU_1Ow5kzjm1xMk7aO6yZuFLLrzqFwqvO3iOWiMfXRM7WCFVajQ1qY9/pub?output=csv' },
+  { nombre: '2°1°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyMEsTaB8nuIVNoKNvun6GaLGpWeS3_QJiUrgfdlIEwosxEUDDMqIyvpVNXQ9D1c2LzosQl3ac3dcp/pub?output=csv' },
+  { nombre: '2°2°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR6zqdYZEHIG3d85_hAAeze79wzCVxYVv-zSOIof0PLHKdNlk9VCQO-s263jRNKW_P3xrlBKV8NtIyr/pub?output=csv' },
+  { nombre: '2°3°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRPopXWeKNgN-ErA5XeWWhC1G7DbXcY7ZJ1KeBF9EnQuz7YSZ-oIEAHHEIIrO8I0zPIf9wVql06hkrJ/pub?output=csv' },
+  { nombre: '3°1°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS3UDFsI0E-kuWBSsAC7ISHP5tn1sDHlWw2MpCgKL4uk2SlF0BojLb8vEsy7xCgm4mf0czCxVoEVnY1/pub?output=csv' },
+  { nombre: '3°2°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRStR3DZ4K9ENUhJASm4eVNpkW6UQTTivINWioYvWkGAhlSsKT97qv-Tz4SkHfOl5dfNXYE6SPl2ruu/pub?output=csv' },
+  { nombre: '3°3°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT41AIBOq54Vb8WLNf6IFQmu-rYJGbWSq8Cd8SRDSWbTeK3DtRrgWPFQurCQiatn-XTuM1IFubsxgXl/pub?output=csv' },
+  { nombre: '4°1°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQueHtkAGTIbVPoc3pu9jKJPmz6nvbuwFH_lAhQ9-N2b-mGNzkx4TZIH5hQZCzKzZwrCuTnRWJVFQMO/pub?output=csv' },
+  { nombre: '4°2°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRcUsvB7dHBQlr8eP8Hm8nT2Zk-xgZQVDmyTs40Eoq3iDmnyhrjocdv69641tSk5mgk8T9E2ZVScVlA/pub?output=csv' },
+  { nombre: '5°1°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-jqvDuYjVpmFOM5TaOHOQ4juZa9b6futy6EDb-b3gkyIP2LOwMBXPg_4O5Nww8yQkdTgy7KUIMJmw/pub?output=csv' },
+  { nombre: '5°2°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9eJ7F8jYVZMsRzd7UtM-SvDZPxU8NA6OBlPG3KNCmDuRnwJjfDkPNi-NcKskN2Xwpn2OIA3TV5ERn/pub?output=csv' },
+  { nombre: '6°1°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRcYNi_zkn4tTNW2EgoEg7CYYDFG2syRq5fhQSv6ELvRn3d_RIQ5OLmwm_ZpEmNoGwnsmYsVevV0RqG/pub?output=csv' },
+  { nombre: '7°1°', csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0aIeTqNmscUrRBD73u8YvgYBDiJ7exIlzIfpIviwrirgayTV94aeHuKr6WZujQDuuh0_ujVyLj3CW/pub?output=csv' }
 ];
 
-const APROBADO_VALS = ['aprobado','a','si','sí','s','1','true','aprobó','aprobo'];
-const DESAPROBADO_VALS = ['desaprobado','d','no','n','0','false','desaprobó','desaprobo','reprobado'];
-
-let datos = {};
-let todasLasMaterias = [];
-let todosCursos = [];
-let tabActual = 'alumnos';
-
-function normalizar(val) {
-  if (val === null || val === undefined || String(val).trim() === '') return 'vacio';
-  const v = String(val).trim().toLowerCase();
-  if (APROBADO_VALS.includes(v)) return 'aprobado';
-  if (DESAPROBADO_VALS.includes(v)) return 'desaprobado';
-  return 'vacio';
-}
-
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  return lines.map(line => {
-    const cols = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"') { inQ = !inQ; continue; }
-      if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
-      cur += c;
-    }
-    cols.push(cur.trim());
-    return cols;
-  });
-}
-
-async function fetchCSV(url) {
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('No se pudo cargar la planilla');
-  return await resp.text();
-}
 
 async function cargarTodo() {
   datos = {}; todasLasMaterias = []; todosCursos = [];
@@ -550,29 +525,17 @@ async function cargarTodo() {
   for (let i = 0; i < PLANILLAS.length; i++) {
     document.getElementById('loading-progress').textContent = `Cargando planilla ${i + 1} de ${PLANILLAS.length}...`;
     try {
-      const text = await fetchCSV(PLANILLAS[i].url);
+      const planilla = PLANILLAS[i];
+      const nombreCurso = planilla.nombre;
+      const text = await fetchCSV(planilla.csvUrl);
       const rows = parseCSV(text);
       if (rows.length < 2) continue;
 
       const headers = rows[0].map(h => String(h).trim());
-
-      // Col 0 = N° orden, Col 1 = Alumno (nombre), última = Porcentaje
-      // El nombre del curso se detecta desde la primera celda no vacía de encabezado
-      // que no sea "Alumno" ni "Porcentaje" — o bien desde una celda especial
-      // Buscamos el nombre del curso: puede estar en una fila previa o se usa headers[1]
       const colNombre = 1;
       const lastCol = headers.length - 1;
       const materiaHeaders = headers.slice(2, lastCol).filter(h => h !== '');
       materiaHeaders.forEach(m => materiasSet.add(m));
-
-      // Nombre del curso: buscamos celda que diga algo distinto a encabezados típicos
-      // Si hay una fila 0 con un nombre de curso en col 0, la usamos
-      // Sino derivamos el nombre del valor más común en una columna especial
-      // Por ahora: buscamos si hay alguna celda en la fila de encabezado col 0
-      let nombreCurso = String(headers[0]).trim();
-      if (!nombreCurso || nombreCurso.toLowerCase() === 'n°' || nombreCurso === '' || nombreCurso.match(/^\d+$/)) {
-        nombreCurso = `Planilla ${i + 1}`;
-      }
 
       const alumnos = [];
       for (let r = 1; r < rows.length; r++) {
